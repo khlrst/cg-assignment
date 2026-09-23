@@ -7,7 +7,6 @@ import type { Config } from './env';
 // dotenv.config()
 
 class Indexer {
-
   constructor(
     private readonly config: Config,
     private readonly logger: CustomLogger,

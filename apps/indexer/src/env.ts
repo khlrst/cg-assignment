@@ -26,7 +26,7 @@ export function validateConfig(): Config {
   const envVars = {
     DATABASE_URL: process.env.DATABASE_URL,
     rpcUrl: process.env.RPC_URL,
-    logLevel: process.env.LOG_LEVEL
+    logLevel: process.env.LOG_LEVEL,
   };
 
   // Validate using Zod schema
