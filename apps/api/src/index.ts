@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
-import { findAllWalletsWithBalances } from '@cg-assignment/db';
+import { findAllWalletsWithBalances, getWallet } from '@cg-assignment/db';
 import type { RuntimeEnv } from '@cg-assignment/db';
+import { buildWithdrawal, getChainId } from '@cg-assignment/evm';
 import { getConfig } from './env';
 
 // uncomment for local development
@@ -88,6 +89,40 @@ app.post('/withdrawals', async (c) => {
   if (typeof body.asset !== 'string') {
     return c.json({ error: 'Invalid Asset' }, 400);
   }
+
+  const chainId = await getChainId(config.rpcUrl);
+
+  if (!chainId.ok) {
+    return c.json({ error: chainId.error }, 400);
+  }
+
+  const walletRes = await getWallet(
+    { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
+    body.from,
+    chainId.value,
+  );
+
+  if (!walletRes) {
+    return c.json({ error: 'Wallet not found' }, 404);
+  }
+
+  const result = await buildWithdrawal(
+    config.rpcUrl,
+    config.mnemonic,
+    walletRes.idx,
+    body.asset,
+    body.to,
+    body.value,
+    body.broadcast ?? false,
+  );
+
+  if (!result.ok) {
+    return c.json({ error: result.error }, 400);
+  }
+
+  return c.json({
+    transaction: result.value,
+  });
 });
 
 serve({
