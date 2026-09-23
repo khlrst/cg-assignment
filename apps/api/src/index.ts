@@ -17,14 +17,15 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-app.get('/wallet', async (c) => {
-  const body = await c.req.json();
+app.post('/wallet', async (c) => {
+  const address = c.req.query('address');
+  const token = c.req.query('token');
 
-  if (typeof body.address !== 'string') {
+  if (typeof address !== 'string') {
     return c.json({ error: 'Invalid destination' }, 400);
   }
 
-  if (typeof body.token !== 'string') {
+  if (typeof token !== 'string') {
     return c.json({ error: 'Invalid value' }, 400);
   }
 
@@ -36,8 +37,8 @@ app.get('/wallet', async (c) => {
 
   const result = await getTokenBalanceByWallet(
     config as RuntimeEnv,
-    normalizeAddress(body.address),
-    normalizeAddress(body.token),
+    normalizeAddress(address),
+    normalizeAddress(token),
     chainId.value,
     config.confirmations,
   );
