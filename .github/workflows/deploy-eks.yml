@@ -1,0 +1,80 @@
+name: Deploy EKS
+
+on:
+  workflow_call:
+    inputs:
+      env_file:
+        required: true
+        type: string
+        description: 'Environment file to use (staging, production)'
+      github_environment:
+        required: true
+        type: string
+        description: 'GitHub environment for secrets (staging or production)'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.github_environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Init variables
+        run: |
+          echo VERSION=$(git rev-parse --short HEAD) >> ${GITHUB_ENV}
+
+      - name: Setup Node and pnpm
+        uses: ./.github/actions/setup
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push indexer image
+        id: build_indexer
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/indexer/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.INDEXER_IMAGE }}:dev
+            ${{ vars.INDEXER_IMAGE }}:${{ env.VERSION }}
+          cache-from: type=gha,scope=indexer
+          cache-to: type=gha,scope=indexer
+
+      - name: Build and push consumer image
+        id: build_consumer
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/consumer/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.QUEUE_LISTENER_IMAGE }}:dev
+            ${{ vars.QUEUE_LISTENER_IMAGE }}:${{ env.VERSION }}
+          cache-from: type=gha,scope=consumer
+          cache-to: type=gha,scope=consumer
+
+      - name: Update kubectl context
+        run: aws eks update-kubeconfig --name ${{ vars.EKS_CLUSTER }} --region us-east-1
+
+      - name: Update indexer statefulset
+        run: |
+          kubectl -n ${{ vars.EKS_NAMESPACE }} set image statefulset/ethereum-etl main=${{ vars.INDEXER_IMAGE }}:${{ env.VERSION }}
+          kubectl -n ${{ vars.EKS_NAMESPACE }} rollout status statefulset/ethereum-etl
+
+      - name: Update consumer deployment
+        run: |
+          kubectl -n ${{ vars.EKS_NAMESPACE }} set image deployment/consumer main=${{ vars.CONSUMER_IMAGE }}:${{ env.VERSION }}
+          kubectl -n ${{ vars.EKS_NAMESPACE }} rollout status deployment/consumer
