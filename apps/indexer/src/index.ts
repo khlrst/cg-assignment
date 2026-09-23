@@ -1,6 +1,7 @@
 import { createLogger, CustomLogger } from '@cg-assignment/logger';
 import { getConfig } from './env';
 import { Indexer } from './indexer';
+import { blockHandler } from './block';
 
 const config = getConfig();
 const logger = new CustomLogger(createLogger(config.logLevel)).child('indexer:main');
@@ -33,7 +34,7 @@ process.on('SIGTERM', () => {
 try {
   const poller = (
     await indexer.stream(async (block) => {
-      logger.debug(`Indexed block ${block.number}`);
+      blockHandler(config, logger)(block);
     })
   ).onReorg(async (reorg, chain) => {
     logger.info(

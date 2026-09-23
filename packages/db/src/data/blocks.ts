@@ -46,21 +46,16 @@ export async function isBlockProcessed(
   return !!res;
 }
 
-export async function getLatestBlocksInRange(
+export async function getLastBlocks(
   env: RuntimeEnv,
   chainId: number,
-  start: number,
-  end: number,
+  amount: number,
 ): Promise<BlockParams[]> {
   const db = getDb(env);
   return await db.query.blocks.findMany({
-    where: {
-      chain_id: { eq: chainId },
-      number: { gte: start, lte: end },
-    },
-    orderBy: {
-      number: 'desc',
-    },
+    where: { chain_id: { eq: chainId } },
+    orderBy: { number: 'desc' },
+    limit: amount,
   });
 }
 
@@ -96,7 +91,7 @@ export async function finishBlock(
     .where(and(eq(blocks.number, block.number), eq(blocks.chain_id, chainId)));
 }
 
-export async function deleteBlocks(
+export async function deleteBlock(
   env: RuntimeEnv,
   chainId: number,
   blockNumber: number,
@@ -104,4 +99,17 @@ export async function deleteBlocks(
 ): Promise<void> {
   const db = tx || getDb(env);
   await db.delete(blocks).where(and(gt(blocks.number, blockNumber), eq(blocks.chain_id, chainId)));
+}
+
+export async function deleteBlocksAfter(
+  env: RuntimeEnv,
+  chainId: number,
+  ancestorNumber: number,
+  tx?: DatabaseClient,
+): Promise<void> {
+  const db = tx || getDb(env);
+
+  await db
+    .delete(blocks)
+    .where(and(eq(blocks.chain_id, chainId), gt(blocks.number, ancestorNumber)));
 }

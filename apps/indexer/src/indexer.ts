@@ -1,4 +1,10 @@
-import { type BlockchainClient, type BlockHandler, EVMBlockchainClient } from '@cg-assignment/evm';
+import {
+  type BlockchainClient,
+  type BlockHandler,
+  EVMBlockchainClient,
+  type EventWatch,
+  ZeroAddress,
+} from '@cg-assignment/evm';
 import { type CustomLogger } from '@cg-assignment/logger';
 import { getAllWalletsByChainId, getAllTokensByChainId, getLatestBlock } from '@cg-assignment/db';
 import { type Config } from './env';
@@ -38,21 +44,28 @@ export class Indexer {
       );
     }
 
+    const erc20tokens = tokens
+      .map((token) => token.address)
+      .filter((token) => token !== ZeroAddress);
+    const includesNative = tokens.some((token) => token.address === ZeroAddress);
+
+    const watchEvents: EventWatch[] = [];
+    if (includesNative) {
+      watchEvents.push({ type: 'native_transfer' });
+    }
+
+    watchEvents.push({
+      type: 'erc20_transfer',
+      tokens: erc20tokens.length > 0 ? erc20tokens : undefined,
+    });
+
     const options: PollerOptions = {
       rpc: this.config.rpcUrl,
       startBlock: startBlock,
       interval: 10_000,
       watch: {
         addresses: wallets.map((wallet) => wallet.address),
-        events: [
-          {
-            type: 'erc20_transfer',
-            tokens: tokens.map((token) => token.address),
-          },
-          {
-            type: 'native_transfer',
-          },
-        ],
+        events: watchEvents,
       },
       reorgs: true,
     };

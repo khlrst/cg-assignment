@@ -14,6 +14,11 @@ const envSchema = z.object({
 
   // Logging Configuration
   logLevel: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+
+  retryPolicy: z.object({
+    delay: z.number().positive().default(2_500),
+    maxRetries: z.number().positive().default(3),
+  }),
 });
 
 export type Config = z.infer<typeof envSchema>;
@@ -27,6 +32,10 @@ export function validateConfig(): Config {
     DATABASE_URL: process.env.DATABASE_URL,
     rpcUrl: process.env.RPC_URL,
     logLevel: process.env.LOG_LEVEL,
+    retryPolicy: {
+      delay: process.env.RETRY_DELAY_NODE,
+      maxRetries: process.env.RETRY_MAX_RETRIES,
+    },
   };
 
   // Validate using Zod schema
