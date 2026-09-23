@@ -112,54 +112,32 @@ export async function getWalletWithTokenBalance(
         wi.chain_id,
         ti.address AS token_address,
 
-        COALESCE(
-          s.balance,
-          0
-        )
+        COALESCE(s.balance, 0)
         +
         COALESCE(
           SUM(
             CASE
-              WHEN t.block_number <= sb.number
+              WHEN t.block_number <= COALESCE(sb.number, 0)
               THEN
-                CASE
-                  WHEN t.to_address = wi.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.to_address = wi.address THEN t.value ELSE 0 END
                 -
-                CASE
-                  WHEN t.from_address = wi.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.from_address = wi.address THEN t.value ELSE 0 END
               ELSE 0
             END
           ),
           0
         ) AS confirmed_balance,
 
-        COALESCE(
-          s.balance,
-          0
-        )
+        COALESCE(s.balance, 0)
         +
         COALESCE(
           SUM(
             CASE
               WHEN t.block_number <= lb.number
               THEN
-                CASE
-                  WHEN t.to_address = wi.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.to_address = wi.address THEN t.value ELSE 0 END
                 -
-                CASE
-                  WHEN t.from_address = wi.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.from_address = wi.address THEN t.value ELSE 0 END
               ELSE 0
             END
           ),
@@ -172,7 +150,9 @@ export async function getWalletWithTokenBalance(
         ON ti.chain_id = wi.chain_id
 
       CROSS JOIN latest_block lb
-      CROSS JOIN safe_block sb
+
+      LEFT JOIN safe_block sb
+        ON true
 
       LEFT JOIN snapshot s
         ON true
@@ -185,11 +165,7 @@ export async function getWalletWithTokenBalance(
           OR
           t.to_address = wi.address
         )
-        AND t.block_number >
-          COALESCE(
-            s.at_block,
-            wi.from_block - 1
-          )
+        AND t.block_number > COALESCE(s.at_block, wi.from_block - 1)
         AND t.block_number <= lb.number
 
       GROUP BY
@@ -198,7 +174,9 @@ export async function getWalletWithTokenBalance(
         wi.from_block,
         ti.address,
         s.balance,
-        s.at_block
+        s.at_block,
+        sb.number,
+        lb.number
     )
 
     SELECT
@@ -246,9 +224,7 @@ export async function findAllWalletsWithBalances(
   }
 
   const limit = Math.min(requestedLimit, MAX_PAGE_SIZE);
-
   const cursorAddress = options.cursor?.address ?? null;
-
   const cursorChainId = options.cursor?.chainId ?? null;
 
   const db = getDb(env);
@@ -276,9 +252,6 @@ export async function findAllWalletsWithBalances(
       LIMIT ${limit + 1}
     ),
 
-    /*
-     * Latest block for every chain represented in this page.
-     */
     latest_blocks AS (
       SELECT DISTINCT ON (b.chain_id)
         b.chain_id,
@@ -295,9 +268,6 @@ export async function findAllWalletsWithBalances(
         b.number DESC
     ),
 
-    /*
-     * Latest block minus safeRange.
-     */
     safe_blocks AS (
       SELECT DISTINCT ON (b.chain_id)
         b.chain_id,
@@ -313,9 +283,6 @@ export async function findAllWalletsWithBalances(
         b.number DESC
     ),
 
-    /*
-     * Existing snapshots.
-     */
     snapshot_pairs AS (
       SELECT
         wp.address,
@@ -330,11 +297,6 @@ export async function findAllWalletsWithBalances(
         AND b.chain_id = wp.chain_id
     ),
 
-    /*
-     * Wallet/token combinations which do not have a snapshot yet.
-     *
-     * These are discovered from transfers starting at wallet.from_block.
-     */
     new_pairs AS (
       SELECT DISTINCT
         wp.address,
@@ -364,9 +326,6 @@ export async function findAllWalletsWithBalances(
       WHERE b.wallet_address IS NULL
     ),
 
-    /*
-     * Existing snapshots plus new wallet/token combinations.
-     */
     candidate_pairs AS (
       SELECT
         address,
@@ -389,71 +348,38 @@ export async function findAllWalletsWithBalances(
       FROM new_pairs
     ),
 
-    /*
-     * Aggregate transfers once per wallet/token.
-     *
-     * Existing snapshot:
-     *
-     *   start = snapshot_block
-     *
-     * New pair:
-     *
-     *   start = from_block - 1
-     */
     aggregated AS (
       SELECT
         cp.address,
         cp.chain_id,
         cp.token_address,
 
-        COALESCE(
-          cp.snapshot_balance,
-          0
-        )
+        COALESCE(cp.snapshot_balance, 0)
         +
         COALESCE(
           SUM(
             CASE
-              WHEN t.block_number <= sb.number
+              WHEN t.block_number <= COALESCE(sb.number, 0)
               THEN
-                CASE
-                  WHEN t.to_address = cp.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.to_address = cp.address THEN t.value ELSE 0 END
                 -
-                CASE
-                  WHEN t.from_address = cp.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.from_address = cp.address THEN t.value ELSE 0 END
               ELSE 0
             END
           ),
           0
         ) AS confirmed_balance,
 
-        COALESCE(
-          cp.snapshot_balance,
-          0
-        )
+        COALESCE(cp.snapshot_balance, 0)
         +
         COALESCE(
           SUM(
             CASE
               WHEN t.block_number <= lb.number
               THEN
-                CASE
-                  WHEN t.to_address = cp.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.to_address = cp.address THEN t.value ELSE 0 END
                 -
-                CASE
-                  WHEN t.from_address = cp.address
-                    THEN t.value
-                  ELSE 0
-                END
+                CASE WHEN t.from_address = cp.address THEN t.value ELSE 0 END
               ELSE 0
             END
           ),
@@ -465,7 +391,7 @@ export async function findAllWalletsWithBalances(
       INNER JOIN latest_blocks lb
         ON lb.chain_id = cp.chain_id
 
-      INNER JOIN safe_blocks sb
+      LEFT JOIN safe_blocks sb
         ON sb.chain_id = cp.chain_id
 
       LEFT JOIN ${transfers} t
@@ -475,12 +401,8 @@ export async function findAllWalletsWithBalances(
           t.from_address = cp.address
           OR
           t.to_address = cp.address
-        )
-        AND t.block_number >
-          COALESCE(
-            cp.snapshot_block,
-            cp.from_block - 1
           )
+        AND t.block_number > COALESCE(cp.snapshot_block, cp.from_block - 1)
         AND t.block_number <= lb.number
 
       GROUP BY
@@ -490,9 +412,6 @@ export async function findAllWalletsWithBalances(
         cp.snapshot_balance
     ),
 
-    /*
-     * Convert token rows into the API shape.
-     */
     wallet_balances AS (
       SELECT
         a.address,
@@ -551,23 +470,15 @@ export async function findAllWalletsWithBalances(
   }>;
 
   const hasNextPage = rows.length > limit;
-
   const pageRows = hasNextPage ? rows.slice(0, limit) : rows;
 
   if (pageRows.length === 0) {
-    return {
-      wallets: [],
-      nextCursor: null,
-    };
+    return { wallets: [], nextCursor: null };
   }
 
   const last = pageRows[pageRows.length - 1];
-
   if (!last) {
-    return {
-      wallets: [],
-      nextCursor: null,
-    };
+    return { wallets: [], nextCursor: null };
   }
 
   return {
@@ -870,25 +781,48 @@ export async function getWallet(
 export async function insertWallets(
   env: RuntimeEnv,
   walletList: Array<{ address: string; chainId: number; fromBlock: number; idx: number }>,
+  walletBalances: Array<{
+    wallet_address: string;
+    chain_id: number;
+    token_address: string;
+    balance: bigint;
+    at_block: number;
+    at_hash: string;
+  }>,
   tx?: DatabaseClient,
 ): Promise<void> {
+  if (walletList.length === 0) {
+    return;
+  }
+
   const db = tx || getDb(env);
+  await db
+    .insert(wallets)
+    .values(
+      walletList.map((wallet) => ({
+        address: wallet.address,
+        chain_id: wallet.chainId,
+        from_block: wallet.fromBlock,
+        idx: wallet.idx,
+      })),
+    )
+    .onConflictDoNothing({
+      target: [wallets.address, wallets.chain_id],
+    });
 
-  return await db.transaction(async (tx) => {
-    if (walletList.length === 0) {
-      return;
-    }
-
-    await tx
-      .insert(wallets)
-      .values(
-        walletList.map((wallet) => ({
-          address: wallet.address,
-          chain_id: wallet.chainId,
-          from_block: wallet.fromBlock,
-          idx: wallet.idx,
-        })),
-      )
-      .onConflictDoNothing();
-  });
+  await db
+    .insert(balances)
+    .values(
+      walletBalances.map((balance) => ({
+        wallet_address: balance.wallet_address,
+        chain_id: balance.chain_id,
+        token_address: balance.token_address,
+        balance: balance.balance.toString(),
+        at_block: balance.at_block,
+        at_hash: balance.at_hash,
+      })),
+    )
+    .onConflictDoNothing({
+      target: [balances.wallet_address, balances.chain_id, balances.token_address],
+    });
 }

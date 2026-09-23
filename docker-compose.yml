@@ -21,21 +21,89 @@ services:
 
   # One-off migrations service (runs and exits)
   db-migrate:
-    image: node:24-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: db-migrate
-    working_dir: /app
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - app-network
     environment:
       DATABASE_URL: postgresql://test:test@postgres:5432/test
       NODE_ENV: development
-    volumes:
-      - ./:/app
+    command: pnpm --filter db run migrate
+
+  # One-off seed service (runs and exits)
+  db-seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: db-seed
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
-    command: >
-      sh -c "npm i -g pnpm && pnpm install --frozen-lockfile && pnpm --filter db run migrate"
+    environment:
+      DATABASE_URL: postgresql://test:test@postgres:5432/test
+      RPC_URL: ${RPC_URL}
+      MNEMONIC: ${MNEMONIC}
+      NODE_ENV: development
+    command: pnpm --filter api run seed
+
+  # EVM chain indexer
+  indexer-evm:
+    build:
+      context: .
+      dockerfile: apps/indexer/Dockerfile
+      target: production
+    container_name: indexer-evm
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      db-seed:
+        condition: service_completed_successfully
+    environment:
+      RPC_URL: ${RPC_URL}
+      DATABASE_URL: postgresql://test:test@postgres:5432/test
+    volumes:
+      - indexer_evm_logs:/app/apps/indexer/logs
+      - indexer_evm_state:/app/state/
+    networks:
+      - app-network
+
+  # API
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: api
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      db-seed:
+        condition: service_completed_successfully
+    environment:
+      MNEMONIC: ${MNEMONIC}
+      RPC_URL: ${RPC_URL}
+      DATABASE_URL: postgresql://test:test@postgres:5432/test
+    volumes:
+      - api_logs:/app/apps/api/logs
+      - api_state:/app/state/
+    networks:
+      - app-network
+
 
 networks:
   app-network:
@@ -43,5 +111,13 @@ networks:
     driver: bridge
 
 volumes:
+  indexer_evm_logs:
+    driver: local
+  indexer_evm_state:
+    driver: local
+  api_logs:
+    driver: local
+  api_state:
+    driver: local
   postgres_data:
     driver: local

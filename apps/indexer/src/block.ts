@@ -1,10 +1,11 @@
-import { type BlockHandler, type IndexedBlock, ZeroAddress } from '@cg-assignment/evm';
+import { type BlockHandler, type IndexedBlock, ZeroAddress, normalizeAddress } from '@cg-assignment/evm';
 import {
   getDb,
   saveTransfer,
   createBlock,
   isBlockProcessed,
   isTransferProcessed,
+  updateBalancesSnapshot,
   type BlockParams,
   type Transfer,
 } from '@cg-assignment/db';
@@ -31,13 +32,15 @@ export function blockHandler(config: Config, logger: CustomLogger): BlockHandler
         chain_id: block.chainId,
         hash: block.hash,
         number: block.number,
-        timestamp: new Date(block.timestamp).toISOString(),
+        timestamp: new Date(block.timestamp * 1000).toISOString(),
         parent_hash: block.parentHash,
         finished: false,
       };
 
       // create block
       await createBlock({ DATABASE_URL: config.DATABASE_URL }, blockParams, tx);
+
+      logger.info('handleBlock', { event: blockParams, message: 'created block' });
 
       for (const event of block.events) {
         const index = event.type === 'erc20_transfer' ? event.logIndex : event.traceIndex;
@@ -47,9 +50,9 @@ export function blockHandler(config: Config, logger: CustomLogger): BlockHandler
           chain_id: blockParams.chain_id,
           block_number: blockParams.number,
           block_hash: blockParams.hash,
-          token_address: address,
-          from_address: event.from,
-          to_address: event.to,
+          token_address: normalizeAddress(address),
+          from_address: normalizeAddress(event.from),
+          to_address: normalizeAddress(event.to),
           value: event.amount.toString(),
           index,
         };
@@ -61,11 +64,15 @@ export function blockHandler(config: Config, logger: CustomLogger): BlockHandler
         );
 
         if (isProcessed) {
+          logger.info('handleBlock', { event: transfer, message: 'transfer already processed' });
           return;
         }
 
         await saveTransfer({ DATABASE_URL: config.DATABASE_URL }, transfer, tx);
+
+        logger.info('handleBlock', { event: transfer, message: 'saved transfer' });
       }
+      await updateBalancesSnapshot({ DATABASE_URL: config.DATABASE_URL }, blockParams.chain_id, config.confirmations, tx);
     });
   };
 }

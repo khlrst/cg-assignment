@@ -15,7 +15,12 @@ export async function saveTokens(
   tx?: DatabaseClient,
 ): Promise<void> {
   const db = tx || getDb(env);
-  await db.insert(tokens).values({ chain_id: token.chain_id, address: token.address });
+  await db
+    .insert(tokens)
+    .values({ chain_id: token.chain_id, address: token.address })
+    .onConflictDoNothing({
+      target: [tokens.address, tokens.chain_id],
+    });
 }
 
 export async function getAllTokensByChainId(env: RuntimeEnv, chainId: number): Promise<Token[]> {

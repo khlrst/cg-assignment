@@ -50,22 +50,18 @@ export const createLogger = (logLevel: string) => {
   return winston.createLogger({
     level: logLevel,
     format: isProduction ? jsonFormat : consoleFormat,
-    defaultMeta: { service: 'deposits' },
     transports: [
-      new winston.transports.Console({
-        format: consoleFormat,
-      }),
+      new winston.transports.Console(),
+
       // Write to files in production
       ...(isProduction
         ? [
             new winston.transports.File({
               filename: 'logs/error.log',
               level: 'error',
-              format: jsonFormat,
             }),
             new winston.transports.File({
               filename: 'logs/combined.log',
-              format: jsonFormat,
             }),
           ]
         : []),
@@ -106,8 +102,9 @@ export class CustomLogger {
     this.winstonLogger.info('Service starting up', {
       config: {
         ...config,
+        rpcUrl: config.rpcUrl ? '[REDACTED]' : undefined,
         rabbitmqUrl: config.rabbitmq?.url ? '[REDACTED]' : undefined,
-        databaseUrl: config.database?.url ? '[REDACTED]' : undefined,
+        databaseUrl: config.DATABASE_URL ? '[REDACTED]' : undefined,
       },
       timestamp: Date.now(),
     });

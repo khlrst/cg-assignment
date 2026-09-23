@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import { join } from 'path';
+import { fileURLToPath } from 'url';
 
 import * as dotenv from 'dotenv';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -7,6 +8,9 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { getDb } from './';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = join(__filename, '..');
 
 async function main() {
   if (!process.env.DATABASE_URL) {

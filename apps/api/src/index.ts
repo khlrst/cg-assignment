@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { findAllWalletsWithBalances, getWallet } from '@cg-assignment/db';
 import type { RuntimeEnv } from '@cg-assignment/db';
-import { buildWithdrawal, getChainId } from '@cg-assignment/evm';
+import { buildWithdrawal, getChainId, normalizeAddress } from '@cg-assignment/evm';
 import { getConfig } from './env';
 
 // uncomment for local development
@@ -98,7 +98,7 @@ app.post('/withdrawals', async (c) => {
 
   const walletRes = await getWallet(
     { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
-    body.from,
+    normalizeAddress(body.from),
     chainId.value,
   );
 

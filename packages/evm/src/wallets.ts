@@ -1,4 +1,4 @@
-import type { TransactionLike } from 'ethers';
+import type { TransactionLike, BaseContract } from 'ethers';
 import { HDNodeWallet, Mnemonic, ethers } from 'ethers';
 import type { Result } from '.';
 
@@ -28,6 +28,61 @@ export async function getChainId(rpcUrl: string): Promise<Result<number>> {
     const chainId = await provider.getNetwork().then((n) => n.chainId);
     const chainIdNumber = Number(chainId);
     return { ok: true, value: chainIdNumber };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+export async function getBlockNumber(
+  rpcUrl: string,
+): Promise<Result<{ number: number; hash: string }>> {
+  try {
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const blockNumber = await provider.getBlockNumber();
+    const block = await provider.getBlock(blockNumber);
+    if (!block || !block.hash) {
+      return { ok: false, error: 'Block hash not found' };
+    }
+    return { ok: true, value: { number: blockNumber, hash: block.hash } };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+export async function getWalletBalance(
+  rpcUrl: string,
+  walletAddress: string,
+): Promise<Result<bigint>> {
+  try {
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const balance = await provider.getBalance(walletAddress);
+    return { ok: true, value: balance };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+interface IERC20Contract extends BaseContract {
+  balanceOf: (owner: string) => Promise<bigint>;
+}
+
+export async function getWalletBalanceERC20(
+  rpcUrl: string,
+  walletAddress: string,
+  tokenAddress: string,
+): Promise<Result<bigint>> {
+  try {
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const iface = new ethers.Interface([
+      'function balanceOf(address owner) view returns (uint256)',
+    ]);
+    const contract = new ethers.Contract(
+      tokenAddress,
+      iface,
+      provider,
+    ) as unknown as IERC20Contract;
+    const balance = await contract.balanceOf(walletAddress);
+    return { ok: true, value: balance };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }

@@ -5,3 +5,5 @@ coverage
 .turbo
 docker-compose.yml
 pnpm-lock.yaml
+migrations
+.env*

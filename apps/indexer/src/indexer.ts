@@ -31,6 +31,10 @@ export class Indexer {
       chainId,
     );
     const tokens = await getAllTokensByChainId({ DATABASE_URL: this.config.DATABASE_URL }, chainId);
+    if (tokens.length === 0) {
+      throw new Error('No tokens found');
+    }
+
     const latestBlock = await getLatestBlock({ DATABASE_URL: this.config.DATABASE_URL }, chainId);
     // get the latest block from the database
     // if no latest block, use the minimum fromBlock of the wallets
@@ -47,6 +51,7 @@ export class Indexer {
     const erc20tokens = tokens
       .map((token) => token.address)
       .filter((token) => token !== ZeroAddress);
+
     const includesNative = tokens.some((token) => token.address === ZeroAddress);
 
     const watchEvents: EventWatch[] = [];
@@ -58,6 +63,8 @@ export class Indexer {
       type: 'erc20_transfer',
       tokens: erc20tokens.length > 0 ? erc20tokens : undefined,
     });
+
+    this.logger.info(`Watching ${watchEvents.length} events:`, watchEvents);
 
     const options: PollerOptions = {
       rpc: this.config.rpcUrl,

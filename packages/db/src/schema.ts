@@ -24,7 +24,7 @@ export const wallets = pgTable(
       columns: [table.address, table.chain_id],
       name: 'wallets_pkey',
     }),
-    index('wallets_chain_address_idx').on(table.chain_id, table.address),
+    index('wallets_chain_address_idx').on(table.address, table.chain_id),
   ],
 );
 
@@ -86,16 +86,17 @@ export const transfers = pgTable(
       foreignColumns: [blocks.chain_id, blocks.hash],
       name: 'fk_chain_id_block',
     }).onDelete('cascade'),
-    index('transfers_to_chain_block_idx').on(table.to_address, table.chain_id, table.block_number),
-    index('transfers_from_chain_block_idx').on(
+    index('transfers_from_token_chain_block_idx').on(
       table.from_address,
-      table.chain_id,
-      table.block_number,
-    ),
-    index('transfers_token_chain_block_idx').on(
       table.token_address,
       table.chain_id,
-      table.block_number,
+      table.block_number
+    ),
+    index('transfers_to_token_chain_block_idx').on(
+      table.to_address,
+      table.token_address,
+      table.chain_id,
+      table.block_number
     ),
   ],
 );

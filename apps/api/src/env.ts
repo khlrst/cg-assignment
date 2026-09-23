@@ -25,7 +25,7 @@ export function getConfig(): Config {
   // Parse environment variables
   const envVars = {
     databaseUrl: process.env.DATABASE_URL,
-    rpc_url: process.env.RPC_URL,
+    rpcUrl: process.env.RPC_URL,
     mnemonic: process.env.MNEMONIC,
     port: process.env.PORT,
     confirmations: process.env.CONFIRMATIONS,

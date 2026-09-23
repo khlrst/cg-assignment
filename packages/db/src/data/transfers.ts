@@ -36,15 +36,20 @@ export async function saveTransfer(
   tx?: DatabaseClient,
 ): Promise<void> {
   const db = tx || getDb(env);
-  await db.insert(transfers).values({
-    id: transfer.id,
-    chain_id: transfer.chain_id,
-    block_number: transfer.block_number,
-    block_hash: transfer.block_hash,
-    token_address: transfer.token_address,
-    from_address: transfer.from_address,
-    to_address: transfer.to_address,
-    value: transfer.value,
-    index: transfer.index,
-  });
+  await db
+    .insert(transfers)
+    .values({
+      id: transfer.id,
+      chain_id: transfer.chain_id,
+      block_number: transfer.block_number,
+      block_hash: transfer.block_hash,
+      token_address: transfer.token_address,
+      from_address: transfer.from_address,
+      to_address: transfer.to_address,
+      value: transfer.value,
+      index: transfer.index,
+    })
+    .onConflictDoNothing({
+      target: [transfers.id],
+    });
 }

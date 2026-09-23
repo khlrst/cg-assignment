@@ -75,7 +75,9 @@ export async function createBlock(
       parent_hash: block.parent_hash,
       finished: block.finished,
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing({
+      target: [blocks.chain_id, blocks.hash],
+    });
 }
 
 export async function finishBlock(

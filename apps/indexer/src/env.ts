@@ -19,6 +19,8 @@ const envSchema = z.object({
     delay: z.number().positive().default(2_500),
     maxRetries: z.number().positive().default(3),
   }),
+
+  confirmations: z.number().positive().default(12),
 });
 
 export type Config = z.infer<typeof envSchema>;
@@ -36,6 +38,7 @@ export function validateConfig(): Config {
       delay: process.env.RETRY_DELAY_NODE,
       maxRetries: process.env.RETRY_MAX_RETRIES,
     },
+    confirmations: process.env.CONFIRAMATIONS,
   };
 
   // Validate using Zod schema

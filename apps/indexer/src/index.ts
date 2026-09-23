@@ -5,7 +5,7 @@ import { blockHandler } from './block';
 
 const config = getConfig();
 const logger = new CustomLogger(createLogger(config.logLevel)).child('indexer:main');
-const indexer = new Indexer(config, logger);
+const indexer = new Indexer(config, logger.child('indexer:indexer'));
 
 const shutdown = async (signal: string): Promise<void> => {
   logger.info(`Received ${signal}, shutting down gracefully...`);
