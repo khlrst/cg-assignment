@@ -1,0 +1,23 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prettier:write": "prettier --write .",
+    "prettier:check": "prettier --check .",
+    "start": "node dist/index.js",
+    "dev": "tsup --watch --onSuccess \"node dist/index.js\""
+  },
+  "dependencies": {
+    "@cg-assignment/db": "workspace:*",
+    "@hono/node-server": "^2.1.1",
+    "dotenv": "^18.0.0",
+    "hono": "^4.13.8",
+    "zod": "^4.6.5"
+  }
+}
