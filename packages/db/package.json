@@ -22,6 +22,7 @@
     "lint:fix": "eslint . --fix",
     "prettier:write": "prettier --write .",
     "prettier:check": "prettier --check .",
+    "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "test:unit": "echo \"Skipping unit tests\"",
     "test:integration": "echo \"Skipping integration tests\""

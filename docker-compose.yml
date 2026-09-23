@@ -1,0 +1,47 @@
+services:
+  # Local PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test -d test']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # One-off migrations service (runs and exits)
+  db-migrate:
+    image: node:24-alpine
+    container_name: db-migrate
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://test:test@postgres:5432/test
+      NODE_ENV: development
+    volumes:
+      - ./:/app
+    networks:
+      - app-network
+    command: >
+      sh -c "npm i -g pnpm && pnpm install --frozen-lockfile && pnpm --filter db run migrate"
+
+networks:
+  app-network:
+    name: app-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
