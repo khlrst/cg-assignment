@@ -265,6 +265,24 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  apps/indexer:
+    dependencies:
+      '@cg-assignment/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@cg-assignment/evm':
+        specifier: workspace:*
+        version: link:../../packages/evm
+      '@cg-assignment/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      dotenv:
+        specifier: ^18.0.0
+        version: 18.0.2
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   packages/db:
     dependencies:
       dotenv:

@@ -1,0 +1,22 @@
+{
+  "name": "indexer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prettier:write": "prettier --write .",
+    "prettier:check": "prettier --check .",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@cg-assignment/evm": "workspace:*",
+    "@cg-assignment/db": "workspace:*",
+    "@cg-assignment/logger": "workspace:*",
+    "dotenv": "^18.0.0",
+    "zod": "^4.6.5"
+  }
+}

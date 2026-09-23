@@ -10,5 +10,5 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
-  external: ['@cg-assignment/db'],
+  external: ['@cg-assignment/db', '@cg-assignment/evm'],
 });
