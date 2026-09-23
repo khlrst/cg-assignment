@@ -1,0 +1,104 @@
+name: Deploy
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment (only used when triggered from master branch)'
+        required: false
+        type: choice
+        options:
+          - production
+          - production-preview
+          - aws-production
+          - aws-staging
+        default: 'production'
+
+jobs:
+  verify-code:
+    name: Verify Code
+    runs-on: ubuntu-latest
+    # Uncomment to run integration tests if there are any.
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env:
+    #       POSTGRES_USER: test
+    #       POSTGRES_PASSWORD: test
+    #       POSTGRES_DB: test
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd="pg_isready -U test -d test"
+    #       --health-interval=10s
+    #       --health-timeout=5s
+    #       --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Setup Node and pnpm
+        uses: ./.github/actions/setup
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Prettier Check
+        run: pnpm turbo run prettier:check --affected
+
+      - name: Lint
+        run: pnpm turbo run lint --affected
+
+      - name: Type Check
+        run: pnpm turbo run typecheck --affected
+
+      - name: Unit Tests
+        run: pnpm turbo run test:unit --affected
+
+      # Uncomment to run integration tests if there are any.
+      # - name: Run migrations
+      #   run: pnpm db:migrate
+
+      # - name: Integration Tests
+      #   run: pnpm turbo run test:integration --affected
+
+  # AWS staging deployment - manual trigger from master
+  deploy-eks-staging:
+    name: Deploy AWS Staging
+    needs: verify-code
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && github.event.inputs.environment == 'aws-staging'
+    uses: ./.github/workflows/deploy-eks.yml
+    with:
+      env_file: 'aws-staging'
+      github_environment: 'aws-staging'
+    secrets: inherit
+
+  # AWS prod deployment - manual trigger from master
+  deploy-eks-production:
+    name: Deploy AWS Production
+    needs: verify-code
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && github.event.inputs.environment == 'aws-production'
+    uses: ./.github/workflows/deploy-eks.yml
+    with:
+      env_file: 'aws-production'
+      github_environment: 'aws-production'
+    secrets: inherit

@@ -1,0 +1,7 @@
+node_modules
+.pnpm-store/
+/build
+.env*.local
+.env
+dist
+.turbo
