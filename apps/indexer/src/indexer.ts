@@ -70,7 +70,7 @@ export class Indexer {
       reorgs: true,
     };
 
-    this.poller = new Poller(this.client, options, blockHandler);
+    this.poller = new Poller(this.client, options, blockHandler, this.config);
 
     return this.poller;
   }

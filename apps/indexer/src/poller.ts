@@ -16,7 +16,9 @@ import {
   normalizeAddress,
   normalizeHash,
   ChainReaderImpl,
+  withRetry,
 } from '@cg-assignment/evm';
+import { type Config } from './env';
 
 type StreamState = 'idle' | 'running' | 'paused' | 'stopped';
 
@@ -60,6 +62,7 @@ export class Poller {
     private readonly client: BlockchainClient,
     private readonly options: PollerOptions,
     private readonly blockHandler: BlockHandler,
+    private readonly config: Config,
   ) {
     this.watchedAddresses = new Set(options.watch.addresses.map(normalizeAddress));
     this.watchedTokens = new Set(
@@ -84,7 +87,11 @@ export class Poller {
     this.state = 'running';
 
     try {
-      this.chainId = await this.client.getChainId();
+      this.chainId = await withRetry(
+        () => this.client.getChainId(),
+        this.config.retryPolicy.maxRetries,
+        this.config.retryPolicy.delay,
+      );
       await this.poll();
     } finally {
       this.state = 'stopped';
@@ -137,14 +144,22 @@ export class Poller {
   }
 
   private async fetchNext(): Promise<FetchResult | null> {
-    const latestBlock = await this.client.getBlockNumber();
+    const latestBlock = await withRetry(
+      () => this.client.getBlockNumber(),
+      this.config.retryPolicy.maxRetries,
+      this.config.retryPolicy.delay,
+    );
     const nextBlock = this.head === undefined ? this.options.startBlock : this.head.number + 1;
 
     if (nextBlock > BigInt(latestBlock)) {
       return null;
     }
 
-    const block = await this.client.getBlock(Number(nextBlock));
+    const block = await withRetry(
+      () => this.client.getBlock(Number(nextBlock)),
+      this.config.retryPolicy.maxRetries,
+      this.config.retryPolicy.delay,
+    );
 
     if (!block) {
       return null;
@@ -220,14 +235,17 @@ export class Poller {
   }
 
   private async fetchERC20Transfers(blockNumber: number): Promise<ERC20TransferEvent[]> {
-    const logs = await this.client.getLogs({
-      fromBlock: blockNumber,
-      toBlock: blockNumber,
-
-      address: this.watchedTokens.size > 0 ? [...this.watchedTokens] : undefined,
-
-      topics: [ERC20_TRANSFER_TOPIC],
-    });
+    const logs = await withRetry(
+      () =>
+        this.client.getLogs({
+          fromBlock: blockNumber,
+          toBlock: blockNumber,
+          address: this.watchedTokens.size > 0 ? [...this.watchedTokens] : undefined,
+          topics: [ERC20_TRANSFER_TOPIC],
+        }),
+      this.config.retryPolicy.maxRetries,
+      this.config.retryPolicy.delay,
+    );
 
     const events: ERC20TransferEvent[] = [];
 
@@ -256,7 +274,11 @@ export class Poller {
   }
 
   private async fetchNativeTransfers(blockNumber: number): Promise<NativeTransferEvent[]> {
-    const traces = await this.client.traceBlock(blockNumber);
+    const traces = await withRetry(
+      () => this.client.traceBlock(blockNumber),
+      this.config.retryPolicy.maxRetries,
+      this.config.retryPolicy.delay,
+    );
 
     const events: NativeTransferEvent[] = [];
 
@@ -324,7 +346,11 @@ export class Poller {
 
   private async resetTo(head: BlockReference): Promise<void> {
     // verify canonical head
-    const canonical = await this.client.getBlock(Number(head.number));
+    const canonical = await withRetry(
+      () => this.client.getBlock(Number(head.number)),
+      this.config.retryPolicy.maxRetries,
+      this.config.retryPolicy.delay,
+    );
 
     if (!canonical) {
       throw new Error(`Unable to verify block ${head.number}`);
