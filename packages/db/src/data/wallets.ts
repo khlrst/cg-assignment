@@ -34,7 +34,7 @@ export type FindAllWalletsWithBalancesResult = {
 
 const MAX_PAGE_SIZE = 1000;
 
-export async function getWalletWithTokenBalance(
+export async function getTokenBalanceByWallet(
   env: RuntimeEnv,
   walletAddress: string,
   tokenAddress: string,

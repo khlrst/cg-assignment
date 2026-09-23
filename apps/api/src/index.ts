@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
-import { findAllWalletsWithBalances, getWallet } from '@cg-assignment/db';
+import { findAllWalletsWithBalances, getTokenBalanceByWallet, getWallet } from '@cg-assignment/db';
 import type { RuntimeEnv } from '@cg-assignment/db';
 import { buildWithdrawal, getChainId, normalizeAddress } from '@cg-assignment/evm';
 import { getConfig } from './env';
@@ -15,6 +15,40 @@ const config = getConfig();
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok' });
+});
+
+app.get('/wallet', async (c) => {
+  const body = await c.req.json();
+
+  if (typeof body.address !== 'string') {
+    return c.json({ error: 'Invalid destination' }, 400);
+  }
+
+  if (typeof body.token !== 'string') {
+    return c.json({ error: 'Invalid value' }, 400);
+  }
+
+  const chainId = await getChainId(config.rpcUrl);
+
+  if (!chainId.ok) {
+    return c.json({ error: chainId.error }, 400);
+  }
+
+  const result = await getTokenBalanceByWallet(
+    config as RuntimeEnv,
+    normalizeAddress(body.address),
+    normalizeAddress(body.token),
+    chainId.value,
+    config.confirmations,
+  );
+
+  if (!result) {
+    return c.json({ error: 'Wallet not found' }, 404);
+  }
+
+  return c.json({
+    wallet: result,
+  });
 });
 
 app.get('/wallets', async (c) => {
