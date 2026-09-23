@@ -90,13 +90,13 @@ export const transfers = pgTable(
       table.from_address,
       table.token_address,
       table.chain_id,
-      table.block_number
+      table.block_number,
     ),
     index('transfers_to_token_chain_block_idx').on(
       table.to_address,
       table.token_address,
       table.chain_id,
-      table.block_number
+      table.block_number,
     ),
   ],
 );

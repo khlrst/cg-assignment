@@ -1,4 +1,9 @@
-import { type BlockHandler, type IndexedBlock, ZeroAddress, normalizeAddress } from '@cg-assignment/evm';
+import {
+  type BlockHandler,
+  type IndexedBlock,
+  ZeroAddress,
+  normalizeAddress,
+} from '@cg-assignment/evm';
 import {
   getDb,
   saveTransfer,
@@ -72,7 +77,12 @@ export function blockHandler(config: Config, logger: CustomLogger): BlockHandler
 
         logger.info('handleBlock', { event: transfer, message: 'saved transfer' });
       }
-      await updateBalancesSnapshot({ DATABASE_URL: config.DATABASE_URL }, blockParams.chain_id, config.confirmations, tx);
+      await updateBalancesSnapshot(
+        { DATABASE_URL: config.DATABASE_URL },
+        blockParams.chain_id,
+        config.confirmations,
+        tx,
+      );
     });
   };
 }

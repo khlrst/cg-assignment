@@ -2,9 +2,7 @@
   "version": "8",
   "dialect": "postgres",
   "id": "575e4587-022f-4e1b-90a1-2fad1125934e",
-  "prevIds": [
-    "802c390c-27c4-48d4-8a8d-e75cdfb6bfab"
-  ],
+  "prevIds": ["802c390c-27c4-48d4-8a8d-e75cdfb6bfab"],
   "ddl": [
     {
       "isRlsEnabled": false,
@@ -596,16 +594,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": [
-        "wallet_address",
-        "chain_id"
-      ],
+      "columns": ["wallet_address", "chain_id"],
       "schemaTo": "public",
       "tableTo": "wallets",
-      "columnsTo": [
-        "address",
-        "chain_id"
-      ],
+      "columnsTo": ["address", "chain_id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "fk_wallet_chain",
@@ -615,16 +607,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": [
-        "token_address",
-        "chain_id"
-      ],
+      "columns": ["token_address", "chain_id"],
       "schemaTo": "public",
       "tableTo": "tokens",
-      "columnsTo": [
-        "address",
-        "chain_id"
-      ],
+      "columnsTo": ["address", "chain_id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "fk_token_address_chain_id",
@@ -634,16 +620,10 @@
     },
     {
       "nameExplicit": true,
-      "columns": [
-        "chain_id",
-        "block_hash"
-      ],
+      "columns": ["chain_id", "block_hash"],
       "schemaTo": "public",
       "tableTo": "blocks",
-      "columnsTo": [
-        "chain_id",
-        "hash"
-      ],
+      "columnsTo": ["chain_id", "hash"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "name": "fk_chain_id_block",
@@ -652,11 +632,7 @@
       "table": "transfers"
     },
     {
-      "columns": [
-        "wallet_address",
-        "chain_id",
-        "token_address"
-      ],
+      "columns": ["wallet_address", "chain_id", "token_address"],
       "nameExplicit": true,
       "name": "balances_pkey",
       "entityType": "pks",
@@ -664,10 +640,7 @@
       "table": "balances"
     },
     {
-      "columns": [
-        "chain_id",
-        "hash"
-      ],
+      "columns": ["chain_id", "hash"],
       "nameExplicit": true,
       "name": "blocks_pkey",
       "entityType": "pks",
@@ -675,10 +648,7 @@
       "table": "blocks"
     },
     {
-      "columns": [
-        "address",
-        "chain_id"
-      ],
+      "columns": ["address", "chain_id"],
       "nameExplicit": true,
       "name": "tokens_pkey",
       "entityType": "pks",
@@ -686,10 +656,7 @@
       "table": "tokens"
     },
     {
-      "columns": [
-        "address",
-        "chain_id"
-      ],
+      "columns": ["address", "chain_id"],
       "nameExplicit": true,
       "name": "wallets_pkey",
       "entityType": "pks",
@@ -697,9 +664,7 @@
       "table": "wallets"
     },
     {
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "name": "transfers_pkey",
       "schema": "public",
