@@ -17,7 +17,7 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-app.post('/wallet', async (c) => {
+app.get('/wallet', async (c) => {
   const address = c.req.query('address');
   const token = c.req.query('token');
 
@@ -44,7 +44,7 @@ app.post('/wallet', async (c) => {
   );
 
   if (!result) {
-    return c.json({ error: 'Wallet not found' }, 404);
+    return c.json({ error: 'Balance not found' }, 404);
   }
 
   return c.json({
@@ -117,6 +117,10 @@ app.post('/withdrawals', async (c) => {
     return c.json({ error: 'Invalid destination' }, 400);
   }
 
+  if (typeof body.from !== 'string') {
+    return c.json({ error: 'Invalid sender' }, 400);
+  }
+
   if (typeof body.value !== 'string') {
     return c.json({ error: 'Invalid value' }, 400);
   }
@@ -139,6 +143,22 @@ app.post('/withdrawals', async (c) => {
 
   if (!walletRes) {
     return c.json({ error: 'Wallet not found' }, 404);
+  }
+
+  const balance = await getTokenBalanceByWallet(
+    { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
+    normalizeAddress(body.from),
+    normalizeAddress(body.asset),
+    chainId.value,
+    config.confirmations,
+  );
+
+  if (!balance) {
+    return c.json({ error: 'Balance not found' }, 404);
+  }
+
+  if (BigInt(balance.confirmedBalance) < BigInt(body.value)) {
+    return c.json({ error: 'Insufficient confirmed balance' }, 400);
   }
 
   const result = await buildWithdrawal(

@@ -142,7 +142,7 @@ export async function getTokenBalanceByWallet(
             END
           ),
           0
-        ) AS unconfirmed_balance
+        ) AS current_balance
 
       FROM wallet_info wi
 
@@ -183,7 +183,7 @@ export async function getTokenBalanceByWallet(
       token_address::text AS token,
       chain_id,
       confirmed_balance::text AS confirmed_balance,
-      unconfirmed_balance::text AS unconfirmed_balance
+      current_balance::text AS current_balance
     FROM calculation
   `);
 
@@ -192,7 +192,7 @@ export async function getTokenBalanceByWallet(
         token: string;
         chain_id: number;
         confirmed_balance: string;
-        unconfirmed_balance: string;
+        current_balance: string;
       }
     | undefined;
 
@@ -204,7 +204,7 @@ export async function getTokenBalanceByWallet(
     token: row.token,
     chainId: row.chain_id,
     confirmedBalance: row.confirmed_balance,
-    currentBalance: row.unconfirmed_balance,
+    currentBalance: row.current_balance,
   };
 }
 
@@ -384,7 +384,7 @@ export async function findAllWalletsWithBalances(
             END
           ),
           0
-        ) AS unconfirmed_balance
+        ) AS current_balance
 
       FROM candidate_pairs cp
 
@@ -428,8 +428,8 @@ export async function findAllWalletsWithBalances(
             'confirmedBalance',
             a.confirmed_balance::text,
 
-            'unconfirmedBalance',
-            a.unconfirmed_balance::text
+            'currentBalance',
+            a.current_balance::text
           )
           ORDER BY
             a.chain_id,

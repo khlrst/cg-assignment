@@ -6,6 +6,8 @@ export default defineConfig({
   platform: 'node',
   target: 'node24',
   bundle: true,
+  noExternal: ['@cg-assignment/evm', '@cg-assignment/db', '@cg-assignment/logger'],
+  external: ['ethers', 'abitype', 'pg', 'drizzle-orm', 'winston', 'zod'],
   splitting: false,
   treeshake: true,
   minify: false,

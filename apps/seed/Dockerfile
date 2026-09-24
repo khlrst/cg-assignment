@@ -7,18 +7,18 @@ RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json tsconfig.node.json ./
 
-COPY apps/api/package.json apps/api/
+COPY apps/seed/package.json apps/seed/
 COPY packages/db/package.json packages/db/
 COPY packages/evm/package.json packages/evm/
 
 RUN pnpm install --frozen-lockfile
 
-COPY apps/api apps/api
+COPY apps/seed apps/seed
 COPY packages/db packages/db
 COPY packages/evm packages/evm
 
-RUN pnpm --filter api... build
-RUN pnpm deploy --filter api --prod /prod
+RUN pnpm --filter seed... build
+RUN pnpm deploy --filter seed --prod /prod
 
 FROM node:24-alpine AS production
 
@@ -26,12 +26,12 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-RUN addgroup -S api && adduser -S api -G api
+RUN addgroup -S seed && adduser -S seed -G seed
 
-COPY --from=build --chown=api:api /prod/node_modules ./node_modules
+COPY --from=build --chown=seed:seed /prod/node_modules ./node_modules
 
-COPY --from=build --chown=api:api /app/apps/api/dist/index.js ./index.js
+COPY --from=build --chown=seed:seed /app/apps/seed/dist/index.js ./index.js
 
-USER api
+USER seed
 
 CMD ["node", "index.js"]

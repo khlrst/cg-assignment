@@ -39,21 +39,19 @@ services:
   db-seed:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: db-seed
+      dockerfile: apps/seed/Dockerfile
+      target: production
     depends_on:
       db-migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
-    networks:
-      - app-network
     environment:
       DATABASE_URL: postgresql://test:test@postgres:5432/test
       RPC_URL: ${RPC_URL}
       MNEMONIC: ${MNEMONIC}
-      NODE_ENV: development
-    command: pnpm --filter api run seed
+    networks:
+      - app-network
 
   # EVM chain indexer
   indexer-evm:
@@ -73,8 +71,8 @@ services:
       RPC_URL: ${RPC_URL}
       DATABASE_URL: postgresql://test:test@postgres:5432/test
     volumes:
-      - indexer_evm_logs:/app/apps/indexer/logs
-      - indexer_evm_state:/app/state/
+      - indexer_evm_logs:/app/logs
+      - indexer_evm_state:/app/state
     networks:
       - app-network
 
@@ -99,8 +97,8 @@ services:
       RPC_URL: ${RPC_URL}
       DATABASE_URL: postgresql://test:test@postgres:5432/test
     volumes:
-      - api_logs:/app/apps/api/logs
-      - api_state:/app/state/
+      - api_logs:/app/logs
+      - api_state:/app/state
     networks:
       - app-network
 

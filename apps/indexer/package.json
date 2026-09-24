@@ -17,6 +17,11 @@
     "@cg-assignment/db": "workspace:*",
     "@cg-assignment/logger": "workspace:*",
     "dotenv": "^18.0.0",
+    "winston": "^3.19.0",
+    "abitype": "^1.3.0",
+    "drizzle-orm": "1.0.0-rc.4",
+    "ethers": "^6.17.0",
+    "pg": "^8.23.0",
     "zod": "^4.6.5"
   }
 }
