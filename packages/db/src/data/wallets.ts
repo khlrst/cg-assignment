@@ -8,7 +8,7 @@ export type Balance = {
   token: string;
   chainId: number;
   confirmedBalance: string;
-  unconfirmedBalance: string;
+  currentBalance: string;
 };
 
 export type WalletWithBalances = {
@@ -204,7 +204,7 @@ export async function getTokenBalanceByWallet(
     token: row.token,
     chainId: row.chain_id,
     confirmedBalance: row.confirmed_balance,
-    unconfirmedBalance: row.unconfirmed_balance,
+    currentBalance: row.unconfirmed_balance,
   };
 }
 
