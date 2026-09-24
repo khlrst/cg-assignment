@@ -54,6 +54,14 @@ jobs:
       - name: Setup Node and pnpm
         uses: ./.github/actions/setup
 
+      - name: Setup Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Verify Foundry
+        run: |
+          forge --version
+          anvil --version
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
