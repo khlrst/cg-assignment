@@ -266,7 +266,7 @@ curl -X POST http://localhost:3000/withdrawals \
   }'
 ```
 
-The API checks the wallet's confirmed balance before constructing the withdrawal.
+***NOTE***: The API checks the wallet's confirmed balance before constructing the withdrawal.
 
 ---
 

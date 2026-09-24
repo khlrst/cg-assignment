@@ -1,5 +1,5 @@
 import type { TransactionLike, BaseContract } from 'ethers';
-import { HDNodeWallet, Mnemonic, ethers } from 'ethers';
+import { HDNodeWallet, Mnemonic, ethers, Transaction } from 'ethers';
 import type { Result } from '.';
 
 export function getWallet(seedPhrase: string, idx: number): Result<HDNodeWallet> {
@@ -83,6 +83,15 @@ export async function getWalletBalanceERC20(
     ) as unknown as IERC20Contract;
     const balance = await contract.balanceOf(walletAddress);
     return { ok: true, value: balance };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+export function parseSignedTransaction(signedTransaction: string): Result<Transaction> {
+  try {
+    const parsed = ethers.Transaction.from(signedTransaction);
+    return { ok: true, value: parsed };
   } catch (error) {
     return { ok: false, error: (error as Error).message };
   }

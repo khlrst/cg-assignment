@@ -3,15 +3,12 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 
-import {
-  findAllWalletsWithBalances,
-  getTokenBalanceByWallet,
-  getWallet,
-} from '@cg-assignment/db';
+import { findAllWalletsWithBalances, getTokenBalanceByWallet, getWallet } from '@cg-assignment/db';
 import type { RuntimeEnv } from '@cg-assignment/db';
 
 import {
   buildWithdrawal,
+  parseSignedTransaction,
   getChainId,
   normalizeAddress,
 } from '@cg-assignment/evm';
@@ -45,9 +42,7 @@ const walletsQuerySchema = z.object({
       }
 
       try {
-        const parsed = JSON.parse(
-          Buffer.from(val, 'base64url').toString('utf8'),
-        );
+        const parsed = JSON.parse(Buffer.from(val, 'base64url').toString('utf8'));
 
         const cursorSchema = z.object({
           address: z.string().min(1),
@@ -77,125 +72,109 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
-app.get(
-  '/wallet',
-  zValidator('query', walletQuerySchema),
-  async (c) => {
-    const { address, token } = c.req.valid('query');
+app.get('/wallet', zValidator('query', walletQuerySchema), async (c) => {
+  const { address, token } = c.req.valid('query');
 
-    const chainId = await getChainId(config.rpcUrl);
+  const chainId = await getChainId(config.rpcUrl);
 
-    if (!chainId.ok) {
-      return c.json({ error: chainId.error }, 400);
-    }
+  if (!chainId.ok) {
+    return c.json({ error: chainId.error }, 400);
+  }
 
-    const result = await getTokenBalanceByWallet(
-      config as RuntimeEnv,
-      normalizeAddress(address),
-      normalizeAddress(token),
-      chainId.value,
-      config.confirmations,
-    );
+  const result = await getTokenBalanceByWallet(
+    config as RuntimeEnv,
+    normalizeAddress(address),
+    normalizeAddress(token),
+    chainId.value,
+    config.confirmations,
+  );
 
-    if (!result) {
-      return c.json({ error: 'Balance not found' }, 404);
-    }
+  if (!result) {
+    return c.json({ error: 'Balance not found' }, 404);
+  }
 
-    return c.json({
-      wallet: result,
-    });
-  },
-);
+  return c.json({
+    wallet: result,
+  });
+});
 
-app.get(
-  '/wallets',
-  zValidator('query', walletsQuerySchema),
-  async (c) => {
-    const { limit, cursor } = c.req.valid('query');
+app.get('/wallets', zValidator('query', walletsQuerySchema), async (c) => {
+  const { limit, cursor } = c.req.valid('query');
 
-    const result = await findAllWalletsWithBalances(
-      config as RuntimeEnv,
-      config.confirmations,
-      {
-        limit,
-        cursor,
-      },
-    );
+  const result = await findAllWalletsWithBalances(config as RuntimeEnv, config.confirmations, {
+    limit,
+    cursor,
+  });
 
-    const nextCursor = result.nextCursor
-      ? Buffer.from(
-          JSON.stringify(result.nextCursor),
-          'utf8',
-        ).toString('base64url')
-      : null;
+  const nextCursor = result.nextCursor
+    ? Buffer.from(JSON.stringify(result.nextCursor), 'utf8').toString('base64url')
+    : null;
 
-    return c.json({
-      wallets: result.wallets,
-      nextCursor,
-    });
-  },
-);
+  return c.json({
+    wallets: result.wallets,
+    nextCursor,
+  });
+});
 
-app.post(
-  '/withdrawals',
-  zValidator('json', withdrawalBodySchema),
-  async (c) => {
-    const body = c.req.valid('json');
+app.post('/withdrawals', zValidator('json', withdrawalBodySchema), async (c) => {
+  const body = c.req.valid('json');
 
-    const chainId = await getChainId(config.rpcUrl);
+  const chainId = await getChainId(config.rpcUrl);
 
-    if (!chainId.ok) {
-      return c.json({ error: chainId.error }, 400);
-    }
+  if (!chainId.ok) {
+    return c.json({ error: chainId.error }, 400);
+  }
 
-    const walletRes = await getWallet(
-      { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
-      normalizeAddress(body.from),
-      chainId.value,
-    );
+  const walletRes = await getWallet(
+    { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
+    normalizeAddress(body.from),
+    chainId.value,
+  );
 
-    if (!walletRes) {
-      return c.json({ error: 'Wallet not found' }, 404);
-    }
+  if (!walletRes) {
+    return c.json({ error: 'Wallet not found' }, 404);
+  }
 
-    const balance = await getTokenBalanceByWallet(
-      { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
-      normalizeAddress(body.from),
-      normalizeAddress(body.asset),
-      chainId.value,
-      config.confirmations,
-    );
+  const balance = await getTokenBalanceByWallet(
+    { DATABASE_URL: config.databaseUrl } as RuntimeEnv,
+    normalizeAddress(body.from),
+    normalizeAddress(body.asset),
+    chainId.value,
+    config.confirmations,
+  );
 
-    if (!balance) {
-      return c.json({ error: 'Balance not found' }, 404);
-    }
+  if (!balance) {
+    return c.json({ error: 'Balance not found' }, 404);
+  }
 
-    if (BigInt(balance.confirmedBalance) < BigInt(body.value)) {
-      return c.json(
-        { error: 'Insufficient confirmed balance' },
-        400,
-      );
-    }
+  if (BigInt(balance.confirmedBalance) < BigInt(body.value)) {
+    return c.json({ error: 'Insufficient confirmed balance' }, 400);
+  }
 
-    const result = await buildWithdrawal(
-      config.rpcUrl,
-      config.mnemonic,
-      walletRes.idx,
-      body.asset,
-      body.to,
-      body.value,
-      body.broadcast,
-    );
+  const result = await buildWithdrawal(
+    config.rpcUrl,
+    config.mnemonic,
+    walletRes.idx,
+    body.asset,
+    body.to,
+    body.value,
+    body.broadcast,
+  );
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 400);
-    }
+  if (!result.ok) {
+    return c.json({ error: result.error }, 400);
+  }
 
-    return c.json({
-      transaction: result.value,
-    });
-  },
-);
+  const parsed = parseSignedTransaction(result.value);
+
+  if (!parsed.ok) {
+    return c.json({ error: parsed.error }, 400);
+  }
+
+  return c.json({
+    transaction: parsed.value,
+  });
+});
 
 serve({
   fetch: app.fetch,
