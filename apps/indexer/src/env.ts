@@ -38,7 +38,7 @@ export function validateConfig(): Config {
       delay: process.env.RETRY_DELAY_NODE,
       maxRetries: process.env.RETRY_MAX_RETRIES,
     },
-    confirmations: process.env.CONFIRAMATIONS,
+    confirmations: process.env.CONFIRMATIONS,
   };
 
   // Validate using Zod schema
