@@ -5,8 +5,7 @@ import { ethers } from 'ethers';
 
 import { buildWithdrawal, getWallet } from '../src/wallets';
 
-const seedPhrase =
-  'test test test test test test test test test test test junk';
+const seedPhrase = 'test test test test test test test test test test test junk';
 
 const rpcUrl = 'http://127.0.0.1:8545';
 const chainId = 31337;
@@ -54,16 +53,6 @@ after(async () => {
 });
 
 describe('buildWithdrawal', () => {
-  /*
-   * Simplification for unit tests:
-   *
-   * We test transaction construction and signing only. `broadcast` is kept
-   * false, so these tests do not submit a transaction or wait for mining.
-   *
-   * Anvil is still used because buildWithdrawal calls
-   * wallet.populateTransaction(...), which reads chain-dependent values such
-   * as nonce, chain ID, EIP-1559 fees, and gas estimate from the RPC node.
-   */
   it('builds a signed native ETH transfer', async () => {
     const senderResult = getWallet(seedPhrase, 0);
 
@@ -93,14 +82,8 @@ describe('buildWithdrawal', () => {
 
     assert.equal(transaction.isSigned(), true);
     assert.equal(transaction.chainId, BigInt(chainId));
-    assert.equal(
-      transaction.from?.toLowerCase(),
-      senderResult.value.address.toLowerCase(),
-    );
-    assert.equal(
-      transaction.to?.toLowerCase(),
-      ethers.getAddress(recipient).toLowerCase(),
-    );
+    assert.equal(transaction.from?.toLowerCase(), senderResult.value.address.toLowerCase());
+    assert.equal(transaction.to?.toLowerCase(), ethers.getAddress(recipient).toLowerCase());
     assert.equal(transaction.value, 1_234_567_890_000_000_000n);
     assert.equal(transaction.data, '0x');
     assert.ok(transaction.nonce >= 0);
@@ -138,31 +121,17 @@ describe('buildWithdrawal', () => {
 
     assert.equal(transaction.isSigned(), true);
     assert.equal(transaction.chainId, BigInt(chainId));
-    assert.equal(
-      transaction.from?.toLowerCase(),
-      senderResult.value.address.toLowerCase(),
-    );
-    assert.equal(
-      transaction.to?.toLowerCase(),
-      ethers.getAddress(token).toLowerCase(),
-    );
+    assert.equal(transaction.from?.toLowerCase(), senderResult.value.address.toLowerCase());
+    assert.equal(transaction.to?.toLowerCase(), ethers.getAddress(token).toLowerCase());
     assert.equal(transaction.value, 0n);
 
-    const erc20 = new ethers.Interface([
-      'function transfer(address to, uint256 amount)',
-    ]);
+    const erc20 = new ethers.Interface(['function transfer(address to, uint256 amount)']);
 
     assert.equal(transaction.data.slice(0, 10), '0xa9059cbb');
 
-    const decoded = erc20.decodeFunctionData(
-      'transfer',
-      transaction.data,
-    );
+    const decoded = erc20.decodeFunctionData('transfer', transaction.data);
 
-    assert.equal(
-      ethers.getAddress(decoded[0]),
-      ethers.getAddress(recipient),
-    );
+    assert.equal(ethers.getAddress(decoded[0]), ethers.getAddress(recipient));
     assert.equal(decoded[1], amount);
   });
 
@@ -207,18 +176,9 @@ describe('buildWithdrawal', () => {
     const transaction0 = ethers.Transaction.from(result0.value);
     const transaction1 = ethers.Transaction.from(result1.value);
 
-    assert.equal(
-      transaction0.from?.toLowerCase(),
-      wallet0.value.address.toLowerCase(),
-    );
-    assert.equal(
-      transaction1.from?.toLowerCase(),
-      wallet1.value.address.toLowerCase(),
-    );
-    assert.notEqual(
-      transaction0.from?.toLowerCase(),
-      transaction1.from?.toLowerCase(),
-    );
+    assert.equal(transaction0.from?.toLowerCase(), wallet0.value.address.toLowerCase());
+    assert.equal(transaction1.from?.toLowerCase(), wallet1.value.address.toLowerCase());
+    assert.notEqual(transaction0.from?.toLowerCase(), transaction1.from?.toLowerCase());
   });
 
   it('does not broadcast when broadcast is false', async () => {
@@ -232,10 +192,7 @@ describe('buildWithdrawal', () => {
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    const nonceBefore = await provider.getTransactionCount(
-      senderResult.value.address,
-      'latest',
-    );
+    const nonceBefore = await provider.getTransactionCount(senderResult.value.address, 'latest');
 
     const balanceBefore = await provider.getBalance(recipient);
 
@@ -251,10 +208,7 @@ describe('buildWithdrawal', () => {
 
     assert.equal(result.ok, true);
 
-    const nonceAfter = await provider.getTransactionCount(
-      senderResult.value.address,
-      'latest',
-    );
+    const nonceAfter = await provider.getTransactionCount(senderResult.value.address, 'latest');
 
     const balanceAfter = await provider.getBalance(recipient);
 
@@ -365,10 +319,7 @@ describe('getWallet', () => {
   });
 });
 
-async function waitForRpc(
-  url: string,
-  timeoutMs = 10_000,
-): Promise<void> {
+async function waitForRpc(url: string, timeoutMs = 10_000): Promise<void> {
   const provider = new ethers.JsonRpcProvider(url);
   const startedAt = Date.now();
 
@@ -386,14 +337,10 @@ async function waitForRpc(
     await sleep(100);
   }
 
-  throw new Error(
-    `Anvil did not start at ${url} within ${timeoutMs}ms`,
-  );
+  throw new Error(`Anvil did not start at ${url} within ${timeoutMs}ms`);
 }
 
-function waitForProcessExit(
-  process: ChildProcess,
-): Promise<void> {
+function waitForProcessExit(process: ChildProcess): Promise<void> {
   return new Promise((resolve) => {
     process.once('exit', () => resolve());
   });
