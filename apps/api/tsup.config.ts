@@ -3,12 +3,13 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
+  platform: 'node',
   target: 'node24',
-  dts: false,
-  sourcemap: true,
-  clean: true,
+  bundle: true,
   splitting: false,
   treeshake: true,
   minify: false,
-  external: ['@cg-assignment/db'],
+  sourcemap: false,
+  dts: false,
+  clean: true,
 });
